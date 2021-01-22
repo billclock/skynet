@@ -1,6 +1,6 @@
 local skynet = require "skynet"
-local netpack = require "netpack"
-local socketdriver = require "socketdriver"
+local netpack = require "skynet.netpack"
+local socketdriver = require "skynet.socketdriver"
 
 local gateserver = {}
 
@@ -112,8 +112,7 @@ function gateserver.start(handler)
 
 	function MSG.error(fd, msg)
 		if fd == socket then
-			socketdriver.close(fd)
-			skynet.error(msg)
+			skynet.error("gateserver accpet error:",msg)
 		else
 			if handler.error then
 				handler.error(fd, msg)
@@ -142,7 +141,7 @@ function gateserver.start(handler)
 		end
 	}
 
-	skynet.start(function()
+	local function init()
 		skynet.dispatch("lua", function (_, address, cmd, ...)
 			local f = CMD[cmd]
 			if f then
@@ -151,7 +150,13 @@ function gateserver.start(handler)
 				skynet.ret(skynet.pack(handler.command(cmd, address, ...)))
 			end
 		end)
-	end)
+	end
+
+	if handler.embed then
+		init()
+	else
+		skynet.start(init)
+	end
 end
 
 return gateserver
